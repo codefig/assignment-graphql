@@ -1,10 +1,11 @@
 
-const TaskController = require('./controllers/taskController');
-const taskController = new TaskController();
-
 const express = require('express');
+const { graphqlHTTP } = require('express-graphql');
+const Database = require('./repository/database');
+const { GraphQLBoolean, GraphQLObjectType, GraphQLInt, GraphQLSchema, GraphQLString, GraphQLList } = require('graphql');
 
 const app = express();
+const db = new Database();
 
 app.use(express.json());
 
@@ -12,22 +13,105 @@ app.get('/', (req, res) => {
     return res.json({ message: "Welcome to the Todo API" })
 })
 
-app.post('/task', async (req, res) => {
-    return await taskController.addTask(req, res);
+const TaskType = new GraphQLObjectType({
+    name: "Task",
+    fields: () => ({
+        id: { type: GraphQLString },
+        body: { type: GraphQLString },
+        completed: { type: GraphQLBoolean },
+        created_at: { type: GraphQLString },
+        updated_at: { type: GraphQLString }
+    })
 })
 
-app.put('/task', async (req, res) => {
-    return await taskController.updateTask(req, res);
+const PhaseType = new GraphQLObjectType({
+    fields: () => ({
+        id: { type: GraphQLInt },
+        name: { type: GraphQLString },
+        completed: { type: GraphQLBoolean },
+        tasks: { type: new GraphQLList(TaskType) },
+    }),
+    name: "Phase"
 })
 
-app.get('/phasetasks/:phaseId', async (req, res) => {
-    return await taskController.getTasks(req, res);
+
+const query = new GraphQLObjectType({
+    name: "RootQueryType",
+    fields: {
+        getTasksByPhaseId: {
+            type: new GraphQLList(TaskType),
+            args: { phaseId: { type: GraphQLInt } },
+            async resolve(parent, args) {
+                return await db.getTasks(args.phaseId);
+            }
+        },
+        getAllPhases: {
+            type: new GraphQLList(PhaseType),
+            async resolve(parent, args) {
+                return await db.getPhases();
+            }
+        },
+        getPhaseById: {
+            type: PhaseType,
+            args: { phaseId: { type: GraphQLInt } },
+            async resolve(parent, args) {
+                return await db.getPhase(args.phaseId);
+            }
+        },
+    }
 })
 
-const server = app.listen(4000, function () {
-    //Add room for try and catch if any exception happens in the handler
-    console.log(`Application is listening on port : 4000 `)
+const mutation = new GraphQLObjectType({
+    name: "Mutation",
+    fields: {
+        createTask: {
+            type: TaskType,
+            args: { phaseId: { type: GraphQLInt }, body: { type: GraphQLString } },
+            async resolve(parent, args) {
+                return await db.addTask(args.phaseId, args.body)
+            }
+        },
+        updateTask: {
+            type: TaskType,
+            args: { phaseId: { type: GraphQLInt }, taskId: { type: GraphQLString }, isCompleted: { type: GraphQLBoolean } },
+            async resolve(parent, args) {
+                return await db.updateTask(args.phaseId, args.taskId, args.isCompleted)
+            }
+        },
+    }
 });
+
+const schema = new GraphQLSchema({ query: query, mutation: mutation })
+
+app.use('/graphql', graphqlHTTP({
+    graphiql: true,
+    schema,
+}))
+
+app.listen(4000, function () {
+    console.log("listening on the servcer ")
+})
+
+
+//Declare the types ;
+
+
+// app.post('/task', async (req, res) => {
+//     return await taskController.addTask(req, res);
+// })
+
+// app.put('/task', async (req, res) => {
+//     return await taskController.updateTask(req, res);
+// })
+
+// app.get('/phasetasks/:phaseId', async (req, res) => {
+//     return await taskController.getTasks(req, res);
+// })
+
+// const server = app.listen(4000, function () {
+//     //Add room for try and catch if any exception happens in the handler
+//     console.log(`Application is listening on port : 4000 `)
+// });
 
 
 
