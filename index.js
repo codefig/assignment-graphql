@@ -93,29 +93,7 @@ app.listen(4000, function () {
 })
 
 
-//Declare the types ;
-
-
-// app.post('/task', async (req, res) => {
-//     return await taskController.addTask(req, res);
-// })
-
-// app.put('/task', async (req, res) => {
-//     return await taskController.updateTask(req, res);
-// })
-
-// app.get('/phasetasks/:phaseId', async (req, res) => {
-//     return await taskController.getTasks(req, res);
-// })
-
-// const server = app.listen(4000, function () {
-//     //Add room for try and catch if any exception happens in the handler
-//     console.log(`Application is listening on port : 4000 `)
-// });
-
-
-
-/** 
+/*
  *  How to run 
  *   run the foloowing commands to Install the required pckages
  *  > npm install 
